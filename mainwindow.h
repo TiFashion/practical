@@ -2,7 +2,6 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QGraphicsScene>
 #include <QMouseEvent>
 #include "scene.h"
 
@@ -21,8 +20,10 @@ public:
 private slots:
     void on_pushButton_clicked();
 
+    void on_pushButton_2_clicked();
+
 private:
     Ui::MainWindow *ui;
-    QGraphicsScene *scene;
+    Scene* scene;
 };
 #endif // MAINWINDOW_H

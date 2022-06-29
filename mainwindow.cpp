@@ -27,3 +27,10 @@ void MainWindow::on_pushButton_clicked()
     window.exec();
 }
 
+
+void MainWindow::on_pushButton_2_clicked()
+{
+    scene->clear();
+    scene->points.clear();
+}
+
