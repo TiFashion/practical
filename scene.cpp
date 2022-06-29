@@ -57,3 +57,4 @@ void Scene::findCrossing() {
     addEllipse(cross.x() - 8, cross.y() - 8, 16, 16, pen, brush);
 }
 
+//дароу
