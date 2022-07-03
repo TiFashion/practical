@@ -11,11 +11,13 @@ CONFIG += c++11
 SOURCES += \
     main.cpp \
     mainwindow.cpp \
+    movingellipse.cpp \
     scene.cpp \
     secondwindow.cpp
 
 HEADERS += \
     mainwindow.h \
+    movingellipse.h \
     scene.h \
     secondwindow.h
 

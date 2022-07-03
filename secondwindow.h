@@ -14,6 +14,10 @@ class SecondWindow : public QDialog
 public:
     explicit SecondWindow(QWidget *parent = nullptr);
     ~SecondWindow();
+    void setValues(QString,QString,QString,QString,QString);
+
+private slots:
+    void on_pushButton_clicked();
 
 private:
     Ui::SecondWindow *ui;

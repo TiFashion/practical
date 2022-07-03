@@ -1,59 +1,95 @@
 #include "scene.h"
 
-Scene::Scene(QObject *parent) : QGraphicsScene{parent} {}
+#include <qdebug.h>
 
-void Scene::mousePressEvent(QGraphicsSceneMouseEvent *mouse) {
-  if (points.size() < 4) {
-    points.push_back(mouse->scenePos());
-    if (points.size() == 1) {
-      QGraphicsTextItem *text = addText("1");
-      text->setPos(points.last().x() + 10, points.last().y() + 10);
-    }
-    if (points.size() == 3) {
-      QGraphicsTextItem *text = addText("2");
-      text->setPos(points.last().x() + 10, points.last().y() + 10);
-    }
-  }
+Scene::Scene(QObject *parent) : QGraphicsScene{parent} {
+
 }
 
-void Scene::mouseReleaseEvent(QGraphicsSceneMouseEvent *mouse) {
-  if (points.size() < 6) {
-    QPen pen(Qt::green);
-    QBrush brush(Qt::green);
-    addEllipse(points.last().x() - 5, points.last().y() - 5, 10, 10, pen,
-               brush);
-
+void Scene::mousePressEvent(QGraphicsSceneMouseEvent *mouse) {
     if (points.size() < 4) {
-      QPen red(Qt::black);
-      red.setWidth(3);
-      addLine(points.last().x(), points.last().y(), mouse->scenePos().x(),
-              mouse->scenePos().y(), red);
       points.push_back(mouse->scenePos());
-      addEllipse(points.last().x() - 5, points.last().y() - 5, 10, 10, pen,
-                 brush);
+      MovingEllipse* ellipse = new MovingEllipse();
+      ellipse->setPos(points.last());
+      ElliplesVector.push_back(ellipse);
+      ellipse->setZValue(1);
+      addItem(ellipse);
+      if(points.size()==2)
+          Lines.push_back(addLine(QLine(ElliplesVector[0]->pos().toPoint(), ElliplesVector[1]->pos().toPoint()), QPen(Qt::black,3)));
+      if (points.size() == 4)
+      {
+        for(auto const& i: ElliplesVector)
+            QObject::connect(i,SIGNAL(Moved()),this,SLOT(paintCross()));
+        if(haveCrossPoint())
+        {
+            findCrossing();
+            c = addEllipse(cross.x() - 8, cross.y() - 8, 16, 16, QPen(Qt::red), QBrush(Qt::red));
+            c->setZValue(1);
+        }
+        Lines.push_back(addLine(QLine(ElliplesVector[2]->pos().toPoint(), ElliplesVector[3]->pos().toPoint()), QPen(Qt::black,3)));
+      }
     }
-  }
-  if (points.size() == 4)
-    findCrossing();
-  if (points.size() == 5) {
-  }
+      if (points.size() == 4)
+      {
+          paintCross();
+      }
+}
+
+void Scene::paintCross()
+{
+    if(c!=nullptr) removeItem(c);
+    for(auto const& i: Lines)
+        removeItem(i);
+    Lines.push_back(addLine(QLine(ElliplesVector[0]->pos().toPoint(), ElliplesVector[1]->pos().toPoint()), QPen(Qt::black,3)));
+    Lines.push_back(addLine(QLine(ElliplesVector[2]->pos().toPoint(), ElliplesVector[3]->pos().toPoint()), QPen(Qt::black,3)));
+    if(haveCrossPoint())
+    {
+        findCrossing();
+        c = addEllipse(cross.x() - 8, cross.y() - 8, 16, 16, QPen(Qt::red), QBrush(Qt::red));
+        c->setZValue(1);
+    }
+    else
+        c = nullptr;
+}
+
+double Scene::vectorMul(double ax, double ay, double bx, double by) {
+  return ax * by - bx * ay;
 }
 
 void Scene::findCrossing() {
-  QPointF cross;
   cross.setX(
-      -((points[0].x() * points[1].y() - points[1].x() * points[0].y()) *
-            (points[3].x() - points[2].x()) -
-        (points[2].x() * points[3].y() - points[3].x() * points[2].y()) *
-            (points[1].x() - points[0].x())) /
-      ((points[0].y() - points[1].y()) * (points[3].x() - points[2].x()) -
-       (points[2].y() - points[3].y()) * (points[1].x() - points[0].x())));
+      -((ElliplesVector[0]->pos().x() * ElliplesVector[1]->pos().y() - ElliplesVector[1]->pos().x() * ElliplesVector[0]->pos().y()) *
+            (ElliplesVector[3]->pos().x() - ElliplesVector[2]->pos().x()) -
+        (ElliplesVector[2]->pos().x() * ElliplesVector[3]->pos().y() - ElliplesVector[3]->pos().x() * ElliplesVector[2]->pos().y()) *
+            (ElliplesVector[1]->pos().x() - ElliplesVector[0]->pos().x())) /
+      ((ElliplesVector[0]->pos().y() - ElliplesVector[1]->pos().y()) * (ElliplesVector[3]->pos().x() - ElliplesVector[2]->pos().x()) -
+       (ElliplesVector[2]->pos().y() - ElliplesVector[3]->pos().y()) * (ElliplesVector[1]->pos().x() - ElliplesVector[0]->pos().x())));
 
-  cross.setY(((points[2].y() - points[3].y()) * (-cross.x()) -
-              (points[2].x() * points[3].y() - points[3].x() * points[2].y())) /
-             (points[3].x() - points[2].x()));
-    QPen pen(Qt::red);
-    QBrush brush(Qt::red);
-    addEllipse(cross.x() - 8, cross.y() - 8, 16, 16, pen, brush);
+  cross.setY(((ElliplesVector[2]->pos().y() - ElliplesVector[3]->pos().y()) * (-cross.x()) -
+              (ElliplesVector[2]->pos().x() * ElliplesVector[3]->pos().y() - ElliplesVector[3]->pos().x() * ElliplesVector[2]->pos().y())) /
+             (ElliplesVector[3]->pos().x() - ElliplesVector[2]->pos().x()));
+}
+
+bool Scene::haveCrossPoint() {
+  double v1 =
+      vectorMul(ElliplesVector[3]->pos().x() - ElliplesVector[2]->pos().x(), ElliplesVector[3]->pos().y() - ElliplesVector[2]->pos().y(),
+                ElliplesVector[0]->pos().x() - ElliplesVector[2]->pos().x(), ElliplesVector[0]->pos().y() - ElliplesVector[2]->pos().y());
+
+  double v2 =
+      vectorMul(ElliplesVector[3]->pos().x() - ElliplesVector[2]->pos().x(), ElliplesVector[3]->pos().y() - ElliplesVector[2]->pos().y(),
+                ElliplesVector[1]->pos().x() - ElliplesVector[2]->pos().x(), ElliplesVector[1]->pos().y() - ElliplesVector[2]->pos().y());
+
+  double v3 =
+      vectorMul(ElliplesVector[1]->pos().x() - ElliplesVector[0]->pos().x(), ElliplesVector[1]->pos().y() - ElliplesVector[0]->pos().y(),
+                ElliplesVector[2]->pos().x() - ElliplesVector[0]->pos().x(), ElliplesVector[2]->pos().y() - ElliplesVector[0]->pos().y());
+
+  double v4 =
+      vectorMul(ElliplesVector[1]->pos().x() - ElliplesVector[0]->pos().x(), ElliplesVector[1]->pos().y() - ElliplesVector[0]->pos().y(),
+                ElliplesVector[3]->pos().x() - ElliplesVector[0]->pos().x(), ElliplesVector[3]->pos().y() - ElliplesVector[0]->pos().y());
+
+  if ((v1 * v2 < 0) && (v3 * v4 < 0))
+    return true;
+  else
+    return false;
 }
 
